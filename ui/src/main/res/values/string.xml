@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="new_todo">New todo</string>
+    <string name="retry">Retry</string>">
+    <string name="server_unreachable" formatted="false">The server can\'t be reached. Please try again later.</string>
+
+    <string name="success_added">Todo added with success</string>">
+    <string name="failure_added">Todo failed to add. Please try again later.</string>">
+</resources>
