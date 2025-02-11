@@ -17,10 +17,6 @@ public class TodoResponse {
         return todos;
     }
 
-    public void setTodos(List<Todo> todos) {
-        this.todos = todos;
-    }
-
     public static class Todo {
         private boolean completed;
         private int id;
@@ -42,12 +38,15 @@ public class TodoResponse {
             this.userId = userId;
         }
 
-        public int getId() {
-            return id;
+        public Todo(boolean completed, int id, String todo, int userId) {
+            this.completed = completed;
+            this.id = id;
+            this.todo = todo;
+            this.userId = userId;
         }
 
-        public boolean isCompleted() {
-            return completed;
+        public int getId() {
+            return id;
         }
 
         public void setCompleted(boolean completed) {
@@ -56,6 +55,18 @@ public class TodoResponse {
 
         public String getTodo() {
             return todo;
+        }
+
+        public int getUserId() {
+            return userId;
+        }
+
+        public boolean isCompleted() {
+            return completed;
+        }
+
+        public void setTodo(String todo) {
+            this.todo = todo;
         }
     }
 }

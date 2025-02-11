@@ -48,15 +48,15 @@ public class HomeViewModel extends ViewModel {
         liveData.observeForever(todoResultMutableLiveData::setValue);
     }
 
-    public void callAddTodo(String title) {
-        // default user id 1
-        TodoResponse.Todo todo = new TodoResponse.Todo(false, title, 1);
+    public void callAddTodo(TodoResponse.Todo todo) {
         LiveData<Boolean> liveData = addTodoUseCase.invoke(todo);
         liveData.observeForever(isAddedMutableLiveData::setValue);
     }
 
-    public void addTodo(TodoResponse.Todo todo) {
-        callAddTodo(todo.getTodo());
+    public void addTodo(String todo) {
+        // default user id 1
+        TodoResponse.Todo todoToAdd = new TodoResponse.Todo(false, todo, 1);
+        callAddTodo(todoToAdd);
 
         TodoResult currentTodoResult = todoResultMutableLiveData.getValue();
 
@@ -64,7 +64,7 @@ public class HomeViewModel extends ViewModel {
             List<TodoResponse.Todo> existingTodos =
                     new ArrayList<>(((TodoResult.Success) currentTodoResult).getTodoResponse().getTodos());
             // Add new todo
-            existingTodos.add(todo);
+            existingTodos.add(todoToAdd);
             // Create a new TodoResponse with updated todo list
             TodoResponse updatedResponse = new TodoResponse(existingTodos);
             // Update LiveData with new list

@@ -24,7 +24,7 @@ import com.helloumi.ui.R
 @Composable
 fun AddTodo(
     modifier: Modifier,
-    onClickAdd: (TodoResponse.Todo) -> Unit
+    onClickAdd: (todo: String) -> Unit
 ) {
     var textValue by remember { mutableStateOf("") }
     Row(
@@ -44,7 +44,7 @@ fun AddTodo(
                 .padding(horizontal = INLINE_SM),
             onClick = {
                 if (textValue.isNotEmpty()) {
-                    onClickAdd(TodoResponse.Todo(textValue))
+                    onClickAdd(textValue)
                 } else {
                     // TODO
                 }

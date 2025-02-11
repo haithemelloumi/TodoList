@@ -1,6 +1,7 @@
 package com.helloumi.data.di
 
 import com.helloumi.data.api.apc.ApcAPI
+import com.helloumi.data.database.datasources.interfaces.TodoLDS
 import com.helloumi.data.repository.TodoRepositoryImpl
 import com.helloumi.domain.repository.TodoRepository
 import dagger.Module
@@ -16,6 +17,7 @@ class RepositoryModule {
     @Singleton
     @Provides
     fun provideApcRepository(
-        apcAPI: ApcAPI
-    ): TodoRepository = TodoRepositoryImpl(apcAPI)
+        apcAPI: ApcAPI,
+        todoLDS: TodoLDS
+    ): TodoRepository = TodoRepositoryImpl(apcAPI, todoLDS)
 }

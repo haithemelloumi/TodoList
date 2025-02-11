@@ -4,18 +4,27 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.helloumi.data.api.apc.ApcAPI
+import com.helloumi.data.database.datasources.interfaces.TodoLDS
+import com.helloumi.data.mappers.toEntity
+import com.helloumi.data.mappers.toTodo
 import com.helloumi.data.model.AddTodoResponse
 import com.helloumi.domain.model.response.TodoResponse
 import com.helloumi.domain.model.response.TodoResponse.Todo
 import com.helloumi.domain.model.result.TodoResult
 import com.helloumi.domain.repository.TodoRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import javax.inject.Inject
 
-class TodoRepositoryImpl @Inject constructor(private val apcAPI: ApcAPI) :
-    TodoRepository {
+class TodoRepositoryImpl @Inject constructor(
+    private val apcAPI: ApcAPI,
+    private val todoLDS: TodoLDS,
+) : TodoRepository {
 
     private val _todosLiveData = MutableLiveData<TodoResult>()
     val todosLiveData: LiveData<TodoResult> = _todosLiveData
@@ -24,38 +33,61 @@ class TodoRepositoryImpl @Inject constructor(private val apcAPI: ApcAPI) :
     val isAdded: LiveData<Boolean> = _isAdded
 
     override fun getTodos(): LiveData<TodoResult> {
-        _todosLiveData.postValue(TodoResult.Loading) // Show loading state
+        _todosLiveData.postValue(TodoResult.Loading) // Indiquer le chargement
 
-        val call: Call<TodoResponse> = apcAPI.getTodos()
-        call.enqueue(object : Callback<TodoResponse> {
-            override fun onFailure(call: Call<TodoResponse>, t: Throwable) {
-                Log.e("API CALL ERROR", t.message ?: "api call error")
-                _todosLiveData.postValue(TodoResult.ServerUnavailable)
-            }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Call Api
+                val response = apcAPI.getTodos().execute()
 
-            override fun onResponse(
-                call: Call<TodoResponse>,
-                response: Response<TodoResponse>
-            ) {
                 if (response.isSuccessful && response.body() != null) {
-                    Log.i("API CALL Success", response.body().toString())
-                    response.body()?.let {
-                        _todosLiveData.postValue(TodoResult.Success(it))
-                    }
+                    val todos = response.body()!!.todos
+                    _todosLiveData.postValue(TodoResult.Success(response.body()!!))
+
+                    // Insert data to local datasource
+                    todoLDS.insertTodos(todos.map { it.toEntity() })
+
                 } else {
-                    _todosLiveData.postValue(TodoResult.ServerUnavailable)
-                    Log.w("API CALL NULL", response.body().toString())
+                    // if call api failed, get data from local datasource
+                    getTodosFromLDS()
                 }
+            } catch (e: Exception) {
+                // if call api failed, get data from local datasource
+                getTodosFromLDS()
             }
-        })
+        }
 
         return todosLiveData
     }
 
     override fun addTodo(todo: Todo): LiveData<Boolean> {
+        insertTodoToLDS(todo)
+        return insertTodoToRDS(todo)
+    }
 
+    //////////////////////////// INTERNAL METHODS ////////////////////////////
+
+    // Gets list todo from local datasource
+    private fun getTodosFromLDS() {
+        CoroutineScope(Dispatchers.IO).launch {
+            todoLDS.getTodos().collect { localTodos ->
+                if (localTodos.isNotEmpty()) {
+                    val todoResponse = TodoResponse(localTodos.map { it.toTodo() })
+                    withContext(Dispatchers.Main) {
+                        _todosLiveData.postValue(TodoResult.Success(todoResponse))
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        _todosLiveData.postValue(TodoResult.ServerUnavailable)
+                    }
+                }
+            }
+        }
+    }
+
+    // Insert list todo to to remote datasource
+    private fun insertTodoToRDS(todo: Todo): LiveData<Boolean> {
         val call: Call<AddTodoResponse> = apcAPI.addTodo(todo)
-
         call.enqueue(object : Callback<AddTodoResponse> {
             override fun onFailure(call: Call<AddTodoResponse>, t: Throwable) {
                 Log.e("API CALL ERROR", t.message ?: "api call error")
@@ -76,5 +108,12 @@ class TodoRepositoryImpl @Inject constructor(private val apcAPI: ApcAPI) :
             }
         })
         return isAdded
+    }
+
+    // Insert todo to local datasource
+    private fun insertTodoToLDS(todo: Todo) {
+        CoroutineScope(Dispatchers.IO).launch {
+            todoLDS.insertTodo(todo.toEntity())
+        }
     }
 }

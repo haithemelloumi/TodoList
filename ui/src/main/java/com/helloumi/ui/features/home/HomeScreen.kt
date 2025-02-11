@@ -64,7 +64,7 @@ fun HomeScreenContent(
     modifier: Modifier,
     uiState: TodoResult?,
     uiStateIsTodoAdded: Boolean?,
-    onClickAdd: (TodoResponse.Todo) -> Unit,
+    onClickAdd: (todo: String) -> Unit,
     updateTodo: (TodoResponse.Todo) -> Unit,
     onClickRetry: () -> Unit,
 ) {
